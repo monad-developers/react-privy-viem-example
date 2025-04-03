@@ -1,57 +1,23 @@
 // Hooks
-import { useState } from "react";
-import { useActiveAccount, useConnect } from "thirdweb/react";
-
-
-// Utils
-import { inAppWallet } from "thirdweb/wallets";
-import { createThirdwebClient } from "thirdweb";
-import { hasStoredPasskey } from "thirdweb/wallets/in-app";
-
-const client = createThirdwebClient({ clientId: import.meta.env.VITE_THIRDWEB_CLIENT_ID });
+import { usePrivy, useLogin, useLogout } from "@privy-io/react-auth";
 
 export default function LoginButton() {
-    const { connect } = useConnect()
-    const account = useActiveAccount();
-      
-    const [loginLoading, setLoginLoading] = useState(false);
-    
-    const handleLogin = async () => {
-        setLoginLoading(true);
-    
-        try {
-            await connect(async () => {
-                const wallet = inAppWallet({
-                    auth: {
-                        options: ["passkey"],
-                    },
-                });
-                const hasPasskey = await hasStoredPasskey(client);
-                await wallet.connect({
-                    client,
-                    strategy: "passkey",
-                    type: hasPasskey ? "sign-in" : "sign-up",
-                });
-                return wallet;
-            });
 
-            setLoginLoading(false);
-          
-        } catch(err) {
-            console.log("Problem logging in: ", err);
-            setLoginLoading(false);
-        }
-    };
+    const { login } = useLogin();
+    const { logout } = useLogout();
+
+    const { user, authenticated } = usePrivy();
+    console.log(user && authenticated);
 
     return (
         <div>
-            <button onClick={handleLogin}>Login</button>
             {
-                account
-                    ? <p>Logged in as: {account.address}</p>
-                    : loginLoading
-                        ? <p>signing in...</p>
-                        : <></>
+                (user && authenticated) 
+                    ?   <div>
+                            <button onClick={logout}>Logout</button>
+                            <p>Logged in as: {user?.wallet?.address}</p>
+                        </div>
+                    :   <button onClick={login}>Login</button>
             }
         </div>
     )

@@ -1,102 +1,164 @@
 // Hooks
-import { useState } from "react";
-import { useActiveAccount } from "thirdweb/react";
-
+import { usePrivy, useWallets } from "@privy-io/react-auth";
 
 // Utils
-import { client } from "./client";
-import { eth_getTransactionCount, getContract, Hex, prepareContractCall, prepareTransaction, sendAndConfirmTransaction, sendTransaction } from "thirdweb";
-import { monadTestnet } from "./chain";
-import { rpcRequest } from "./rpcClient";
+import { post } from "./fetch";
+import { publicClient } from "./client";
+import { monadTestnet } from "viem/chains";
+import { createWalletClient, custom, encodeFunctionData, Hex } from "viem";
+import { STRICT_COUNTER_ADDRESS } from "./constants";
 
 export default function BatchTransactionButton() {
-    const account = useActiveAccount();
 
-    const sessionId: Hex = "0xe1bdfb4296577d9d2c50ae1732c8efc3d34f9bd4d33f905b4a910860d39d20b9";
-    const inputs: bigint[] = [
-        // 452312848583266388373324160190187140051835877600467938288952532612520345602n,
-        // 904625697166532776746648320380374280103671775483035995219970316859944730624n,
-        // 1356938545749799165119972480570561420155507653162113126021775068220121677826n,
-        20440865928735611388958095704064n,
-        904625697166532776746648320380374280105011367869975509630224236458469752832n,
-        452312848583266388373324160190187140051835877600467938289168705386061168641n,
-        1356938545749799165119972480570561420155507632800475364578206792838916670209n,
-        5212737724482415740305187253780480n
-    ]
-
-    async function sendTxWithRetry(preparedTx: any, index: number) {
-
-        if(!account) {
-            alert("Not signed in.")
-            return;
-        }
-
-        sendTransaction({
-            account,
-            transaction: preparedTx
-        })
-        .then(res => {
-            console.log(`SUCCESS-${index} Played move at transaction ${index}: ${res.transactionHash}`);
-            return res;
-        })
-        .catch(async e => {
-            console.log(`Failure while playing move ${index}: ${e.message}. Retrying.`);
-            await new Promise(resolve => setTimeout(resolve, 100 * index));
-            sendTxWithRetry(preparedTx, index);
-        })
-    }
+    const { user } = usePrivy();
+    const { ready, wallets } = useWallets();
     
     const handleBatchTransaction = async () => {
-        if(!account) {
+        const batch = 1;
+        console.log(`Processing a batch of ${batch} transactions!`);
+
+        if(!user) {
             alert("Not signed in.")
             return;
         }
 
-        const nonce = await eth_getTransactionCount(rpcRequest, { address: account.address })
+        if (!ready || !wallets) {
+            alert("Cannot detect wallet.");
+            return;
+          }
+
+        if(!user.wallet) {
+            alert("Cannot detect wallet.");
+            return;
+        }
+        console.log("Wallet detected.");
+
+        
         const startTime = Date.now();
-
         try {
-            inputs.map(async (board, index) => {
-                const nonceForTransaction = nonce + index;
-                console.log("Submitting transaction with nonce: ", nonceForTransaction);
+            const userWallet = wallets.find((w) => w.walletClientType == "privy");
+            if(!userWallet) {
+                throw new Error("Privy wallet not detected");
+            }
+            const ethereumProvider = await userWallet.getEthereumProvider();
+            const provider = createWalletClient({
+                chain: monadTestnet,
+                transport: custom(ethereumProvider),
+            });
+            
+            await userWallet.switchChain(monadTestnet.id);
 
-                sendTxWithRetry(prepareContractCall({
-                    contract: getContract({
-                        client,
-                        chain: monadTestnet,
-                        address: "0xD9d6C523BF597e82D5247aB7CA1104215B73e5Bc"
-                    }),
-                    method: "function play(bytes32 sessionId, uint256 result)",
-                    params: [sessionId, board],
-                    nonce: nonceForTransaction
-                }), index);
-
-                // sendTransaction({
-                //     account,
-                //     transaction: prepareContractCall({
-                //         contract: getContract({
-                //             client,
-                //             chain: monadTestnet,
-                //             address: "0xD9d6C523BF597e82D5247aB7CA1104215B73e5Bc"
-                //         }),
-                //         method: "function play(bytes32 sessionId, uint256 result)",
-                //         params: [sessionId, board],
-                //         nonce: nonceForTransaction
-                //     })
-                // })
-                // .then(res => {
-                    // console.log(`Played move at transaction ${index}: ${res.transactionHash} in ${Date.now() - startTime} ms`);
-                //     return res;
-                // })
-                // .catch(e => {
-                //     console.log(`Failure while playing move ${index}: ${e.message} in ${Date.now() - startTime} ms`);
-                // })
+            const nonce = await publicClient.getTransactionCount({  
+                address: userWallet.address as Hex,
             })
+            console.log("Wallet nonce: ", nonce);
 
-            console.log(`Played all moves in ${Date.now() - startTime} ms`);
-          
+            // const currentNumber = await publicClient.readContract({
+            //     address: STRICT_COUNTER_ADDRESS,
+            //     abi: [
+            //         {
+            //             "type": "function",
+            //             "name": "number",
+            //             "inputs": [],
+            //             "outputs": [
+            //                 {
+            //                     "name": "",
+            //                     "type": "uint256",
+            //                     "internalType": "uint256"
+            //                 }
+            //             ],
+            //             "stateMutability": "view"
+            //         }
+            //     ],
+            //     functionName: 'number',
+            // })
+            const currentNumber = BigInt(0);
+            console.log("Fetched current number on contract: ", currentNumber.toString());
+            
+            console.log("Now signing transactions!");
+            const signedTxs: Hex[] = [];
+            for(let i = 0; i < batch; i++) {
+                console.log(`Hello from ${i}`)
+                const signature = await provider.signTransaction({
+                    account: userWallet.address as Hex,
+                    nonce: nonce + i,
+                    to: STRICT_COUNTER_ADDRESS,
+                    data: encodeFunctionData({
+                        abi: [
+                            {
+                                "type": "function",
+                                "name": "update",
+                                "inputs": [
+                                    {
+                                        "name": "newNumber",
+                                        "type": "uint256",
+                                        "internalType": "uint256"
+                                    }
+                                ],
+                                "outputs": [],
+                                "stateMutability": "nonpayable"
+                            }
+                        ],
+                        functionName: "update",
+                        args: [currentNumber + BigInt(++i)]
+                    })
+                })
+                console.log(`Signed transaction number: ${i}: ${signature}`)
+
+                signedTxs.push(signature);
+            }
+            // const signedTxs: Hex[] = await Promise.all((new Array(batch).fill("")).map(async (_, index) => {
+            //     console.log(`Hello from ${index}`)
+            //     const signature = await provider.signTransaction({
+            //         account: userWallet.address as Hex,
+            //         nonce: nonce + index,
+            //         to: STRICT_COUNTER_ADDRESS,
+            //         data: encodeFunctionData({
+            //             abi: [
+            //                 {
+            //                     "type": "function",
+            //                     "name": "update",
+            //                     "inputs": [
+            //                         {
+            //                             "name": "newNumber",
+            //                             "type": "uint256",
+            //                             "internalType": "uint256"
+            //                         }
+            //                     ],
+            //                     "outputs": [],
+            //                     "stateMutability": "nonpayable"
+            //                 }
+            //             ],
+            //             functionName: "update",
+            //             args: [currentNumber + BigInt(++index)]
+            //         })
+            //     })
+                
+            //     console.log(`Signed transaction number: ${index}`)
+            //     return signature;
+            // }))
+            
+            // console.log("Signed all transactions! Preparing JSON RPC params...");
+            // const params = signedTxs.map(signedTx => {
+            //     return {
+            //         jsonrpc: "2.0",
+            //         id: 1,
+            //         method: "eth_sendRawTransaction",
+            //         params: [signedTx],
+            //     }
+            // })
+
+            // const result = await post({
+            //     url: monadTestnet.rpcUrls.default.http[0],
+            //     params
+            // })
+            // console.log("Batched request response: ", result);
+            
+            console.log(`Processed transactions in ${Date.now() - startTime} ms`);
+        
         } catch(err) {
-            console.log("Problem making batch txs: ", err);
+            console.log("Error making batched transaction: ", err)
+            alert(`Problem making batch txs`);
         }
     };
 

@@ -1,3 +1,7 @@
-import { createThirdwebClient } from "thirdweb";
-
-export const client = createThirdwebClient({ clientId: import.meta.env.VITE_THIRDWEB_CLIENT_ID });
+import { monadTestnet } from 'viem/chains'
+import { http, createPublicClient } from 'viem'
+ 
+export const publicClient = createPublicClient({
+  chain: monadTestnet,
+  transport: http(),
+})
