@@ -1,13 +1,15 @@
-import './App.css'
-import LoginButton from './LoginButton'
-import BatchTransactionButton from './BatchTransactionButton'
+// import './App.css'
+import LoginButton from './components/LoginButton'
+import SignTransactionButton from './components/SignTransactionButton'
+import SendTransactionButton from './components/SendTransactionButton'
 
 function App() {
 
   return (
     <>
       <LoginButton />
-      <BatchTransactionButton />
+      <SignTransactionButton />
+      <SendTransactionButton />
     </>
   )
 }

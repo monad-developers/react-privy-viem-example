@@ -7,7 +7,6 @@ export default function LoginButton() {
     const { logout } = useLogout();
 
     const { user, authenticated } = usePrivy();
-    console.log(user && authenticated);
 
     return (
         <div>
