@@ -127,21 +127,22 @@ export default function BatchTransactionButton() {
             //     return signature;
             // }))
             
-            console.log("Signed all transactions! Preparing JSON RPC params...");
-            const params = signedTxs.map(signedTx => {
-                return {
-                    jsonrpc: "2.0",
-                    id: 1,
-                    method: "eth_sendRawTransaction",
-                    params: [signedTx],
-                }
-            })
+            console.log("Signed all transactions: ", signedTxs);
+            console.log("Preparing JSON RPC params...");
+            // const params = signedTxs.map(signedTx => {
+            //     return {
+            //         jsonrpc: "2.0",
+            //         id: 1,
+            //         method: "eth_sendRawTransaction",
+            //         params: [signedTx],
+            //     }
+            // })
 
-            const result = await post({
-                url: monadTestnet.rpcUrls.default.http[0],
-                params
-            })
-            console.log("Batched request response: ", result);
+            // const result = await post({
+            //     url: monadTestnet.rpcUrls.default.http[0],
+            //     params
+            // })
+            // console.log("Batched request response: ", result);
             
             console.log(`Processed transactions in ${Date.now() - startTime} ms`);
         
