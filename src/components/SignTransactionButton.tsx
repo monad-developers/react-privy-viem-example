@@ -31,7 +31,7 @@ export default function SignTransactionButton() {
             
             await userWallet.switchChain(monadTestnet.id);
             
-            console.log("Sending transaction!");
+            console.log("Signing transaction!");
             
             const signature = await provider.signTransaction({
                 account: userWallet.address as Hex,
