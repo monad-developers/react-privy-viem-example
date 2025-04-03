@@ -1,0 +1,1 @@
+export const STRICT_COUNTER_ADDRESS = "0x";
