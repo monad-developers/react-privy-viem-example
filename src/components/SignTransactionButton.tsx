@@ -41,8 +41,8 @@ export default function SignTransactionButton() {
             console.log(`Processed transaction in ${Date.now() - startTime} ms`);
         
         } catch(err) {
-            console.log("Error making batched transaction: ", err)
-            alert(`Problem making batch txs`);
+            console.log("Error signing transaction: ", err)
+            alert(`Problem signing txs`);
         }
     };
 
