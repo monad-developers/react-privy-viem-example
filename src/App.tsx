@@ -2,7 +2,8 @@ import LoginButton from './components/LoginButton'
 import SignMessageButton from './components/SignMessage'
 import SignTransactionButton from './components/SignTransactionButton'
 import SendTransactionButton from './components/SendTransactionButton'
-import BatchTransactionButton from './components/BatchTransactionButton'
+import BatchSendTransactionButton from './components/BatchSendTransactionButton'
+import BatchSignTransactionButton from './components/BatchSignTransactionButton'
 
 function App() {
 
@@ -12,7 +13,8 @@ function App() {
       <SignMessageButton />
       <SignTransactionButton />
       <SendTransactionButton />
-      <BatchTransactionButton />
+      <BatchSignTransactionButton />
+      <BatchSendTransactionButton />
     </>
   )
 }
