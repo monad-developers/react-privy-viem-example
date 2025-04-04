@@ -84,8 +84,7 @@ export default function BatchSendTransactionButton() {
             })
             console.log("Estimated gas per tx: ", gasEstimate.toString());
             
-            // Warm up the provider (server) before posting a batch in Promise.all.
-            // The first run takes ~570ms. Subsequent runs take ~65ms.
+            // The first run (including sending txs) takes ~2.5s. Subsequent runs take ~1.3s.
             console.log("Now signing transactions!");
 
             const startTime = Date.now();
