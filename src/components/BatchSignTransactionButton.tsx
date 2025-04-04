@@ -2,7 +2,6 @@
 import { useWallets } from "@privy-io/react-auth";
 
 // Utils
-import { post } from "../utils/fetch";
 import { publicClient } from "../utils/publicClient";
 import { STRICT_COUNTER_ADDRESS } from "../utils/constants";
 
@@ -61,15 +60,46 @@ export default function BatchSignTransactionButton() {
                 functionName: 'number',
             })
             console.log("Fetched current number on contract: ", currentNumber.toString());
-            
+
+            // Warm up the provider (server) before posting a batch in Promise.all.
+            // The first run takes ~570ms. Subsequent runs take ~65ms.
             console.log("Now signing transactions!");
+
             const startTime = Date.now();
 
-            const signedTxs: Hex[] = [];
-            for(let i = 0; i < batch; i++) {
+            const sig0 = await provider.signTransaction({
+                account: userWallet.address as Hex,
+                nonce: nonce,
+                to: STRICT_COUNTER_ADDRESS,
+                data: encodeFunctionData({
+                    abi: [
+                        {
+                            "type": "function",
+                            "name": "update",
+                            "inputs": [
+                                {
+                                    "name": "newNumber",
+                                    "type": "uint256",
+                                    "internalType": "uint256"
+                                }
+                            ],
+                            "outputs": [],
+                            "stateMutability": "nonpayable"
+                        }
+                    ],
+                    functionName: "update",
+                    args: [currentNumber + BigInt(1)]
+                })
+            })
+            console.log(`Signed transaction number: 0`)
+
+            const signedTxsPromises: Promise<Hex>[] = Array(batch).fill("0x").map(async (_, index) => {  
+                if(index ==  0) {
+                    return sig0;
+                }
                 const signature = await provider.signTransaction({
                     account: userWallet.address as Hex,
-                    nonce: nonce + i,
+                    nonce: nonce + index,
                     to: STRICT_COUNTER_ADDRESS,
                     data: encodeFunctionData({
                         abi: [
@@ -88,13 +118,17 @@ export default function BatchSignTransactionButton() {
                             }
                         ],
                         functionName: "update",
-                        args: [currentNumber + BigInt(i + 1)]
+                        args: [currentNumber + BigInt(index + 1)]
                     })
                 })
-                console.log(`Signed transaction number: ${i}: ${signature}`)
-                signedTxs.push(signature);
-            }
-            console.log(`Processed transactions in ${Date.now() - startTime} ms`);
+                console.log(`Signed transaction number: ${index}`)
+
+                return signature;
+            })
+            const signedTxs: Hex[] = await Promise.all(signedTxsPromises);
+            console.log(`Signed txs in ${Date.now() - startTime} ms`);
+            console.log(signedTxs)
+
         } catch(err) {
             console.log("Error making batched transaction: ", err)
             alert(`Problem making batch txs`);
