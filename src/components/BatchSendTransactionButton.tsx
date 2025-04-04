@@ -163,13 +163,13 @@ export default function BatchSendTransactionButton() {
                 }
             })
             console.log("RPC: ", monadTestnet.rpcUrls.default.http[0])
-            // const result = await post({
-            //     url: monadTestnet.rpcUrls.default.http[0],
-            //     params
-            // })
+            const result = await post({
+                url: monadTestnet.rpcUrls.default.http[0],
+                params
+            })
 
-            // console.log("Batched request response: ", result);
-            // console.log(`Sent transactions in ${Date.now() - startTime} ms`);
+            console.log("Batched request response: ", result);
+            console.log(`Sent transactions in ${Date.now() - startTime} ms`);
         
         } catch(err) {
             console.log("Error making batched transaction: ", err)
