@@ -10,7 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@privy-io/react-auth": "^2.8.0",
+    "@privy-io/react-auth": "^2.8.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "viem": "^2.25.0"
